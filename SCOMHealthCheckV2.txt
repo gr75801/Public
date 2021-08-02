@@ -1,0 +1,208 @@
+#Importing the SCOM PowerShell module 
+Import-module OperationsManager 
+#Connect to localhost when running on the management server 
+$connect = New-SCOMManagementGroupConnection –ComputerName localhost 
+ 
+# Or enable the two lines below and of course enter the FQDN of the management server in the first line. 
+#$MS = "enter.fqdn.name.here" 
+#$connect = New-SCOMManagementGroupConnection –ComputerName $MS 
+ 
+# Create header for HTML Report 
+$Head = "<!--mce:0-->" 
+ 
+# Get status of Management Servers & Gateway Servers Health and input them into report 
+write-host "Getting Management Server and Gateway Server Health States" -ForegroundColor Yellow  
+$ReportOutput = "To enable HTML view, click on `"This message was converted to plain text.`" and select `"Display as HTML`"" 
+$ReportOutput += "<p><H2>Management Servers & Gateway Servers not in Healthy States:</H2></p>" 
+ 
+$Count = Get-SCOMManagementServer | where {$_.HealthState -ne "Success"} | Measure-Object 
+ 
+if($Count.Count -gt 0) {  
+ $ReportOutput += Get-SCOMManagementServer | where {$_.HealthState -ne "Success"} | select Name,HealthState,IsRootManagementServer,IsGateway | ConvertTo-HTML -fragment 
+} else {  
+ $ReportOutput += "<p>All management servers and Gateway Servers are in healthy state.</p>" 
+}  
+
+# Get status of Management Servers and Gateway Servers Health if it is in Grey state or Not Monitored State
+$ReportOutput += "<p><H2>Management Servers and Gateway Servers which are in Grey and Not Monitored State:</H2></p>"
+write-host "Getting Management Servers and Gateway Servers Health States if they are in Grey State or Not Monitored" -ForegroundColor Yellow
+$MSClass = Get-SCOMClass -Name "Microsoft.SystemCenter.ManagementServer"
+$MSGreystate = Get-SCOMMonitoringObject -Class:$MSClass | Where-Object {($_.IsAvailable -eq $false) -and ($_.InMaintenanceMode -eq $False)} | Select Displayname, InMaintenanceMode | Measure-Object
+
+
+if($MSGreystate.Count -gt 0) {  
+ $ReportOutput += Get-SCOMMonitoringObject -Class:$MSClass | Where-Object {($_.IsAvailable -eq $false) -and ($_.InMaintenanceMode -eq $False)} | Select Displayname, InMaintenanceMode | ConvertTo-HTML -fragment 
+} else {  
+ $ReportOutput += "<p>All management Servers and Gateway Servers are in healthy state and none of them are in Grey or Not Monitored State.</p>" 
+}  
+
+
+# Get Agent Health Status and put none healthy ones into report 
+write-host "Getting Agent Health Status" -ForegroundColor Yellow 
+$MG = get-scommanagementgroup  
+$criteria = new-object Microsoft.EnterpriseManagement.Monitoring.MonitoringObjectGenericCriteria("InMaintenanceMode=1") 
+$objectsInMM = $MG.GetPartialMonitoringObjects($criteria.Criteria) 
+$ObjectsFound = $objectsInMM | select-object DisplayName, @{name="Object Type";expression={foreach-object {$_.GetLeastDerivedNonAbstractMonitoringClass().DisplayName}}},@{name="StartTime";expression={foreach-object {$_.GetMaintenanceWindow().StartTime.ToLocalTime()}}},@{name="EndTime";expression={foreach-object {$_.GetMaintenanceWindow().ScheduledEndTime.ToLocalTime()}}},@{name="Path";expression={foreach-object {$_.Path}}},@{name="User";expression={foreach-object {$_.GetMaintenanceWindow().User}}},@{name="Reason";expression={foreach-object {$_.GetMaintenanceWindow().Reason}}},@{name="Comment";expression={foreach-object {$_.GetMaintenanceWindow().Comment}}} 
+
+# Agent Health Status
+Write-host "Getting Agents Health State" -ForegroundColor Yellow 
+$ReportOutput += "<h2>Agents where Health State is not Green:</h2>" 
+$AgentTable = Get-scomAgent | where {$_.HealthState -ne "Success"} | Sort-Object HealthState -descending
+  
+     if($AgentTable.Count -gt 0) {
+$ReportOutput += $AgentTable | Sort-Object MM | Select Name, HealthState, MM, MMUser, MMReason, MMComment, MMEndTime | ConvertTo-HTML -fragment 
+}
+else 
+{  
+ $ReportOutput += "<p>All Windows Agents are Healthy and none of them are in Critical or Warning Health State.</p>" 
+} 
+
+# Agents in Maintenance mode (Health Service Watcher Class):
+Write-host "Getting Agents in Maintenance Mode for Health Service Watcher Class" -ForegroundColor Yellow
+$ReportOutput += "<p><H2>Agents which are currently in Maintenance Mode (Health Service Watcher Class Objects):</H2></p>"
+$agentWatcherclassMM = Get-SCOMClass -Name "Microsoft.SystemCenter.Agent"  
+$GreyAgentMM = Get-SCOMMonitoringObject -Class $agentWatcherclassMM | Where-Object {($_.InMaintenanceMode -eq "True")}
+if($GreyAgentMM.Count -gt 0)
+{  
+ $ReportOutput += $GreyAgentMM | Select DisplayName, HealthState, InMaintenanceMode | ConvertTo-HTML -fragment 
+} 
+else
+{  
+ $ReportOutput += "<p>No Windows Agents are currently set in Maintenance Mode.</p>" 
+}
+
+
+# Agents which are in Grey State:
+write-host "Getting Agent Grey state status" -ForegroundColor Yellow
+$ReportOutput += "<p><H2>Agents which are currently in Grey State:</H2></p>"
+$agentWatcherclass = Get-SCOMClass -Name "Microsoft.SystemCenter.Agent"  
+$GreyAgent = Get-SCOMMonitoringObject -Class $agentWatcherclass | Where-Object {($_.IsAvailable -eq $false) -and ($_.InMaintenanceMode -eq $False)} | Select DisplayName, HealthState, InMaintenanceMode
+if($GreyAgent.Count -gt 0)
+{  
+ $ReportOutput += $GreyAgent | ConvertTo-HTML -fragment 
+} 
+else
+{  
+ $ReportOutput += "<p>All the Windows Agents are reporting Healthy and none of them are in Grey State.</p>" 
+}
+
+
+# Linux Agents which in Critical or Warning State:
+write-host "Getting the Linux Agent Health state" -ForegroundColor Yellow
+$ReportOutput += "<p><H2>Linux Agents which are currently in Critical or Warning State:</H2></p>"
+$UxagentWatcherclass = Get-SCOMClass -DisplayName "Unix/Linux Computer"
+$UXGreyAgent = Get-SCOMMonitoringObject -Class $UxagentWatcherclass | Where-Object {($_.HealthState -Ne "Success") -and ($_.InMaintenanceMode -eq $False)}
+if($UXGreyAgent.Count -gt 0)
+{  
+ $ReportOutput += $UXGreyAgent | Select DisplayName, HealthState, InMaintenanceMode | ConvertTo-HTML -fragment 
+} 
+else
+{  
+ $ReportOutput += "<p>Either you have No Linux machines monitored or All the Linux Agents are reporting Healthy and none of them are in Warning or Critical State.</p>" 
+}
+
+# Linux Agents which are in Grey State:
+write-host "Getting the Linux Agent in Grey State" -ForegroundColor Yellow
+$ReportOutput += "<p><H2>Linux Agents which are currently in Grey State:</H2></p>"
+$UxagentWatcherclass2 = Get-SCOMClass -DisplayName "Unix/Linux Computer"  
+$UXGreyAgent2 = Get-SCOMMonitoringObject -Class $UxagentWatcherclass2 | Where-Object {($_.IsAvailable -eq $false) -and ($_.InMaintenanceMode -eq $False)}
+if($UXGreyAgent2.Count -gt 0 )
+{ $grey 
+ $ReportOutput += $UXGreyAgent2 | Select DisplayName, HealthState, InMaintenanceMode | ConvertTo-HTML -fragment
+} 
+else
+{  
+ $ReportOutput += "<p>Either you have No Linux machines monitored or All the Linux Agents are reporting Healthy and none of them are in Grey State.</p>" 
+}
+
+# Network devices which in Critical or Warning State:
+write-host "Getting the Network devices Health State" -ForegroundColor Yellow
+$ReportOutput += "<p><H2>Network devices currently in Critical or Warning State:</H2></p>"
+$Networkclass = Get-SCOMClass -Name "System.NetworkManagement.Node"
+$NetworkDevice = Get-SCOMMonitoringObject -Class $Networkclass | Where-Object {($_.HealthState -Ne "Success") -and ($_.InMaintenanceMode -eq $False)}
+if($NetworkDevice.Count -gt 0)
+{  
+ $ReportOutput += $NetworkDevice | Select DisplayName, HealthState, InMaintenanceMode | ConvertTo-HTML -fragment 
+} 
+else
+{  
+ $ReportOutput += "<p>Either you have No Network devices monitored or All the Network devices are reporting Healthy and none of them are in Warning or Critical State.</p>" 
+}
+
+# Network devices which are in Grey State:
+write-host "Getting the Network devices Grey State" -ForegroundColor Yellow
+$ReportOutput += "<p><H2>Network devices currently in Grey State:</H2></p>"
+$Networkclass2 = Get-SCOMClass -Name "System.NetworkManagement.Node"
+$NetworkDevice2 = Get-SCOMMonitoringObject -Class $Networkclass2 | Where-Object {($_.IsAvailable -eq $False) -and ($_.InMaintenanceMode -eq $False)}
+if($NetworkDevice2.Count -gt 0)
+{  
+ $ReportOutput += $NetworkDevice2 | Select DisplayName, HealthState, InMaintenanceMode | ConvertTo-HTML -fragment 
+} 
+else
+{  
+ $ReportOutput += "<p>Either you have No Network devices monitored or All the Network devices are reporting Healthy and none of them are in Grey State.</p>" 
+}
+
+# Get Alerts specific to Management Servers and put them in the report
+write-host "Getting Management Server Alerts" -ForegroundColor Yellow 
+$ReportOutput += "<h2>Management Server Alerts:</h2>" 
+$ManagementServers = Get-SCOMManagementServer 
+foreach ($ManagementServer in $ManagementServers){  
+ $ReportOutput += "<h3>Alerts on " + $ManagementServer.ComputerName + "</h3>" 
+ $ReportOutput += get-SCOMalert -Criteria ("NetbiosComputerName = '" + $ManagementServer.ComputerName + "'") | where {$_.ResolutionState -ne '255' -and $_.MonitoringObjectFullName -Match 'Microsoft.SystemCenter'} | select TimeRaised,Name,Description,Severity | ConvertTo-HTML -fragment 
+} 
+ 
+# Get all alerts 
+write-host "Getting all alerts" -ForegroundColor Yellow 
+$Alerts = Get-SCOMAlert -Criteria 'ResolutionState < "255"' 
+ 
+# Get alerts for last 24 hours 
+write-host "Getting alerts for last 24 hours" -ForegroundColor Yellow 
+$ReportOutput += "<h2>Top 10 Alerts With Same Name - 24 hours:</h2>" 
+$ReportOutput += $Alerts | where {$_.LastModified -le (Get-Date).addhours(-24)} | Group-Object Name | Sort-object Count -desc | select-Object -first 10 Count, Name | ConvertTo-HTML -fragment 
+ 
+$ReportOutput += "<h2>Top 10 Repeating Alerts - 24 hours:</h2>" 
+$ReportOutput += $Alerts | where {$_.LastModified -le (Get-Date).addhours(-24)} | Sort-Object -desc RepeatCount | select-Object -first 10 RepeatCount, Name, MonitoringObjectPath, Description | ConvertTo-HTML -fragment 
+ 
+# Get the Top 10 Unresolved alerts still in console and put them into report 
+write-host "Getting Top 10 Unresolved Alerts With Same Name - All Time" -ForegroundColor Yellow  
+$ReportOutput += "<h2>Top 10 Unresolved Alerts:</h2>" 
+$ReportOutput += $Alerts  | Group-Object Name | Sort-object Count -desc | select-Object -first 10 Count, Name | ConvertTo-HTML -fragment 
+ 
+# Get the Top 10 Repeating Alerts and put them into report 
+write-host "Getting Top 10 Repeating Alerts - All Time" -ForegroundColor Yellow  
+$ReportOutput += "<h2>Top 10 Repeating Alerts:</h2>" 
+$ReportOutput += $Alerts | Sort -desc RepeatCount | select-object –first 10 Name, RepeatCount, MonitoringObjectPath, Description | ConvertTo-HTML -fragment 
+ 
+# Get list of agents still in Pending State and put them into report 
+write-host "Getting Agents in Pending State" -ForegroundColor Yellow  
+$ReportOutput += "<h2>Agents in Pending State:</h2>" 
+$ReportOutput += Get-SCOMPendingManagement | sort AgentPendingActionType | select AgentName,ManagementServerName,AgentPendingActionType | ConvertTo-HTML -fragment 
+ 
+# List Management Packs updated in last 24 hours 
+write-host "Getting List Management Packs updated in last 24 hours" -ForegroundColor Yellow 
+$ReportOutput += "<h2>Management Packs Updated:</h2>" 
+$MPDates = (Get-Date).adddays(-1) 
+$ReportOutput += Get-SCManagementPack | Where {$_.LastModified -gt $MPDates} | Select-Object DisplayName, LastModified | Sort LastModified | ConvertTo-Html -fragment 
+ 
+# Take all $ReportOutput and combine it with $Body to create completed HTML output 
+$Body = ConvertTo-HTML -head $Head -body "$ReportOutput" 
+ 
+#$Body | Out-File C:\Scripts\HealthCheck-11-14-2012.html
+ 
+# Setup and send output as email message to GMAIL 
+$SMTPServer = "SMTP Server" 
+$SMTPPort = "25"
+$Body = ConvertTo-HTML -head $Head -body "$ReportOutput" 
+$SmtpClient = New-Object system.net.mail.smtpClient($SMTPServer, $SMTPPort); 
+$MailMessage = New-Object system.net.mail.mailmessage 
+$mailmessage.from = "From Address" 
+$mailmessage.To.add("To Address") 
+#$mailmessage.To.add("another@scom.com") 
+$mailmessage.Subject = "SCOM Daily Healthcheck Report" 
+$MailMessage.IsBodyHtml = $true 
+# Enable the SSL option if you want to force the script to use SSL or you can leave it as it is/
+#$smtpClient.EnableSSL = $true 
+$smtpClient.Credentials = New-Object System.Net.NetworkCredential($Username, $Password); 
+$mailmessage.Body = $Body 
+$smtpclient.Send($mailmessage)
