@@ -1,0 +1,55 @@
+#Setting the Date to -5 days from current date:
+$limit = (Get-Date).AddDays(-5)
+
+#Path to the location where the files need to be deleted:
+$path = "C:\Temp"
+
+#Set the path to C:\Temp:
+Set-Path $Path
+
+# Delete files older than the $limit.
+Get-ChildItem -Path $path | Where-Object { $_.Name -Like "*SQL Inventory Report for*" -and $_.CreationTime -lt $limit } | Remove-Item -Force
+
+#Return the Todays date in string
+$Date = (Get-Date).tostring("yyyyMMdd")
+
+# HTML Header Format
+$Header = @"
+<style>
+TABLE {border-width: 1px; border-style: solid; border-color: black; border-collapse: collapse;}
+TD {border-width: 1px; padding: 3px; border-style: solid; border-color: black;}
+</style>
+"@
+
+#mporting the SCOM Module
+Import-Module Operationsmanager
+
+#Fetch Data from SCOM on the Old SQL versions 2008, 2012, 2014 & 2016:
+$LegacyClass = Get-SCOMClass -DisplayName "*SQL DB Engine*" | Get-SCOMClassInstance | Select @{N='PrincipalName';E={$_.'[Microsoft.Windows.Computer].PrincipalName'}}, @{N='InstanceName';E={$_.'[Microsoft.SQLServer.ServerRole].InstanceName'}}, @{N='Version';E={$_.'[Microsoft.SQLServer.DBEngine].Version'}}, @{N='Edition';E={$_.'[Microsoft.SQLServer.DBEngine].Edition'}} | ConvertTo-HTML -Fragment 
+
+#Fetch Data from SCOM on SQL 2017:
+$NewClass = Get-SCOMClass -DisplayName "MSSQL on Windows: DB Engine" | Get-SCOMClassInstance | Select @{N='PrincipalName';E={$_.'[Microsoft.SQLServer.Windows.DBEngine].PrincipalName'}}, @{N='InstanceName';E={$_.'[Microsoft.SQLServer.Core.DBEngine].InstanceName'}}, @{N='Version';E={$_.'[Microsoft.SQLServer.Core.DBEngine].Version'}}, @{N='Edition';E={$_.'[Microsoft.SQLServer.Core.DBEngine].Edition'}} | ConvertTo-HTML -Fragment
+
+#Convert data from Old SQL versions 2008, 2012, 2014 & 2016 to HTML:
+ConvertTo-HTML -Body "$LegacyClass" -Property PrincipalName, InstanceName, Version, Edition -Head $Header | Out-File -FilePath "C:\Temp\SQL Inventory Report for SQL 2008-2016_$Date.html"
+
+#Convert data from Old SQL version 2017 to HTML:
+ConvertTo-HTML -Body "$NewClass" -Property PrincipalName, InstanceName, Version, Edition -Head $Header | Out-File -FilePath "C:\Temp\SQL Inventory Report for SQL 2017_$Date.html"
+
+$TodaysFile = Get-ChildItem -Path $path | Where-Object { $_.Name -Like "*SQL Inventory Report for*"}
+$DateForEmail = (Get-Date).ToString("dddd MM/dd/yyyy")
+
+#Email / SMTP Server, From and TO Address details to send the Email with the attachment:
+$SMTP = "ISCSISTORAGE.Systemcenterinfra.net" 
+$SMTPPort = "25"
+$From = "_scombat@microsoft.com"
+$To = "garav@microsoft.com" 
+$Subject = "SQL Inventory Report for $DateForEmail"
+#HTML Email Body
+$body = "Hi Team, <b><font color=Black></b></font> <br>"
+$body += "<b><font color=Black></b></font> <br>"
+$body += "Attached is the SQL Inventory report from SCOM.<b><font color=Black></b></font> <br>"
+$body += "<b><font color=Black></b></font> <br>"
+$body += "Regards,<b><font color=Black></b></font> <br>" 
+$body += "SCOM <b><font color=Black></b></font> <br>"
+Send-MailMessage -SmtpServer $smtp -Port $SMTPPort -To $to -From $from -Subject $subject -Body $body -BodyAsHtml -Attachments $TodaysFile
