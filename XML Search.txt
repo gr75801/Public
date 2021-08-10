@@ -1,0 +1,9 @@
+$data = gc .\Microsoft.SystemCenter.NetworkDiscovery.Internal.xml
+$ReturnData = @()
+$lines = $data | where {$_ -like "*seediporname*"}
+foreach ($line in $lines){
+$1stSplit = $line.split('>')[1]
+$2ndSplit = $1stSplit.split('<')[0]
+$ReturnData += $2ndSplit
+}
+$ReturnData
