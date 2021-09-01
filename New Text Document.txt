@@ -1,0 +1,6 @@
+Connection String: Data Source=SCSQL16-003;Initial Catalog=OperationsManager;Persist Security Info=False;Asynchronous Processing=True;Connect Timeout=30;Application Name=SC DAL--MOM SDK;Integrated Security=True
+Connection is not using TCP protocol (0)
+
+VMM Dump:
+[raw] 000001d669441e48 System.String
+"MultipleActiveResultSets=True;Integrated Security=SSPI;Application Name=VirtualMachineManager;Max Pool Size=500;Encrypt=true;TrustServerCertificate=true;Server=SCORCHSQL02\SCORCHVMMSQLSERV,59999;database=VirtualManager16DB; Connection Timeout=120"
