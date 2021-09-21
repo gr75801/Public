@@ -1,0 +1,15 @@
+Full path of the command line: %SystemRoot%\system32\WindowsPowerShell\v1.0\powershell.exe
+Command line Parameteres: "C:\Scripts\Notifications\TestNotifications.ps1" '$Data/Context/DataItem/AlertName$' '$MPElement$'
+Startup Folder: %SystemRoot%\system32\WindowsPowerShell\v1.0\
+
+
+Powershell script:
+========================
+
+Param ([String]$AlertName,[String]$SubscriptionID)
+
+$Logstring = $AlertName + " " + $SubscriptionID 
+$Logfile = "C:\Scripts\Notifications\Notification.log" 
+$DateTime = Get-Date –Uformat "%y-%m-%d %H:%M:%S" 
+$Logstring = $DateTime + " " + $Logstring 
+Add-content $Logfile –value $Logstring 
