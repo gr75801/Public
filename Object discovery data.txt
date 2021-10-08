@@ -1,0 +1,7 @@
+Use Operationsmanager
+Select BME.FullName, DS.DiscoveryRuleID, D.DiscoveryName from typedmanagedentity TME
+Join BaseManagedEntity BME ON TME.BaseManagedEntityId = BME.BaseManagedEntityId
+JOIN DiscoverySourceToTypedManagedEntity DSTME ON TME.TypedManagedEntityID = DSTME.TypedManagedEntityID
+JOIN DiscoverySource DS ON DS.DiscoverySourceID = DSTME.DiscoverySourceID
+JOIN Discovery D ON DS.DiscoveryRuleID=D.DiscoveryID
+Where BME.Fullname like '%ComputerName%'
