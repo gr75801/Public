@@ -1,0 +1,9 @@
+Get the status of the Orchestrator Authorization cache jobs:
+=======================================================
+Select * from [Microsoft.SystemCenter.Orchestrator.Maintenance].MaintenanceTasks
+
+Manually run the Orchestrator Maintenance job's via SP's
+====================================================
+EXEC [Microsoft.SystemCenter.Orchestrator.Maintenance].[EnqueueRecurrentTask] @taskName = 'Statistics'
+EXEC [Microsoft.SystemCenter.Orchestrator.Maintenance].[EnqueueRecurrentTask] @taskName = 'Authorization'
+EXEC [Microsoft.SystemCenter.Orchestrator.Maintenance].[EnqueueRecurrentTask] @taskName = 'ClearAuthorizationCache'
