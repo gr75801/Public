@@ -1,0 +1,6 @@
+INSERT INTO [OperationsManager].[dbo].[AzMan_Role_SIDMember]
+([RoleID]
+,[MemberSID])
+VALUES
+(1, 0x01020000000000052000000020020000)
+GO
