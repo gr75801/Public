@@ -1,0 +1,79 @@
+--Check the SQL Tables for SCOM Database and Datawarehouse Server Name:
+
+-- For Operationsmanager in Operationsmanager DB.
+Use Operationsmanager
+Select SQLServerName_43FB076F_7970_4C86_6DCA_8BD541F45E3A from dbo.MT_Microsoft$SystemCenter$ManagementGroup
+
+
+-- For Operationsmanager in Operationsmanager DB.
+Use Operationsmanager
+Select MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A from dbo.MT_Microsoft$SystemCenter$OpsMgrDB$AppMonitoring
+
+--For Datawarehouse in OperationsmanagerDB
+Use Operationsmanager
+Select Pre_MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F, Post_MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F from dbo.MT_Microsoft$SystemCenter$DataWarehouse_Log
+
+--For Datawarehouse in OperationsmanagerDB
+Use Operationsmanager
+Select MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F from dbo.MT_Microsoft$SystemCenter$DataWarehouse
+
+--For Datawarehouse in OperationsmanagerDB
+Use Operationsmanager
+Select MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A from dbo.MT_Microsoft$SystemCenter$DataWarehouse$AppMonitoring
+
+--For Datawarehouse in OperationsmanagerDB
+Use Operationsmanager
+Select  Pre_MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A, Post_MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A from dbo. MT_Microsoft$SystemCenter$DataWarehouse$AppMonitoring_Log
+
+--FOR SCOM 2016 and above ONLY--
+Use Operationsmanager
+Select DatabaseServerName_69FBB0E2_A6E8_0483_7993_B7AB180A7889 from dbo.MT_Microsoft$SystemCenter$OpsMgrDWWatcher
+
+--For Datawarehouse in OperationsmanagerDW DB
+Use OperationsmanagerDW
+Select Servername from dbo.MemberDatabase
+
+=====================================================================================
+--Updating the SQL Tables for SCOM 2012 R2 DB & DW Movement:
+-- Use the below queries in Operationsmanager DB:
+Update  dbo.MT_Microsoft$SystemCenter$ManagementGroup
+Set SQLServerName_43FB076F_7970_4C86_6DCA_8BD541F45E3A = 'New Server name'
+Where SQLServerName_43FB076F_7970_4C86_6DCA_8BD541F45E3A = 'Old Server Name'
+
+Update dbo.MT_Microsoft$SystemCenter$OpsMgrDB$AppMonitoring
+Set MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A = 'New Server name'
+Where MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A = 'Old Server Name'
+
+--For Datawarehouse in OperationsmanagerDB
+Update dbo.MT_Microsoft$SystemCenter$DataWarehouse
+Set MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F = 'New Server name'
+Where MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F = 'Old Server name'
+
+Update dbo.MT_Microsoft$SystemCenter$DataWarehouse$AppMonitoring
+Set MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A = 'New Server name'
+Where MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A = 'Old Server name'
+
+Update dbo. MT_Microsoft$SystemCenter$DataWarehouse$AppMonitoring_Log
+Set Post_MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A = 'New Server name'
+Where Post_MainDatabaseServerName_5C00C79B_6B71_6EEE_4ADE_80C11F84527A = 'Old Server name'
+
+Update dbo.MT_Microsoft$SystemCenter$DataWarehouse_Log
+Set Pre_MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F = 'New Server name'
+Where Pre_MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F = 'Old Server name'
+
+Update dbo.MT_Microsoft$SystemCenter$DataWarehouse_Log
+Set Post_MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F = 'New Server name'
+Where Post_MainDatabaseServerName_2C77AA48_DB0A_5D69_F8FF_20E48F3AED0F = 'Old Server name'
+
+--FOR SCOM 2016 and above ONLY--
+Update dbo.MT_Microsoft$SystemCenter$OpsMgrDWWatcher
+Set DatabaseServerName_69FBB0E2_A6E8_0483_7993_B7AB180A7889 = 'New Server name'
+Where DatabaseServerName_69FBB0E2_A6E8_0483_7993_B7AB180A7889 = 'Old Server name'
+
+
+--Updating the SQL Tables for SCOM 2012 R2 DB & DW Movement:
+-- Use the below queries in Operationsmanagerdw DB:
+Use OperationsmanagerDW
+Update dbo.MemberDatabase
+Set Servername = 'New Server Name'
+Where ServerName = 'Old Server Name'
