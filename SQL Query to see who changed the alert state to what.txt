@@ -1,0 +1,4 @@
+select a.Alertname,a.monitorAlertInd,a.Alertname,ar.Resolutionstate,ar.TimeFromRaisedSeconds,ar.StateSetByUserID from Alert.valert a inner join alert.valertresolutionstate ar on a.AlertGuid=ar.AlertGuid where ar.resolutionstate=255
+
+
+select a.Alertname,a.monitorAlertInd,a.Alertname,ar.Resolutionstate,ar.TimeFromRaisedSeconds,ar.StateSetByUserID from Alert.valert a inner join alert.valertresolutionstate ar on a.AlertGuid=ar.AlertGuid where ar.resolutionstate=254
