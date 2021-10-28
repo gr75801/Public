@@ -1,0 +1,5 @@
+Use Operationsmanager
+Select max (TimeAdded) from dbo.alert
+
+Use OperationsmanagerDW
+Select Max (DWCreatedDateTime) from Alert.vAlertDetail
