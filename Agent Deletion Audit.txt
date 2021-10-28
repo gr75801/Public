@@ -1,0 +1,8 @@
+Use OperationsmanagerDW
+SELECT vManagedNow.DisplayName as Agent
+,vManagedNow.DWCreatedDateTime as Installed
+, vTop.ToDateTime as Deleted
+FROM [OperationsManagerDW].[dbo].[vManagedEntity] as vManagedNow 
+join [OperationsManagerDW].[dbo].[vManagedEntityManagementGroup] as vTop
+on vManagedNow.ManagedEntityRowId = vtop.ManagedEntityRowId 
+where vManagedNow.ManagedEntityRowId  =vManagedNow.TopLevelHostManagedEntityRowId  and vManagedNow.FullName  like 'Microsoft.Windows.Computer:%'
