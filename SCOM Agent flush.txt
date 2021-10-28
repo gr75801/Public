@@ -1,0 +1,6 @@
+$a = Get-Date (Get-Date).ToUniversalTime() -Format "yyyyMMddHHmmss"
+Get-Service Healthservice | Stop-Service
+$SCOMAgent = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft Operations Manager\3.0\Setup").InstallDirectory; CD $SCOMAgent
+$newf = "Health Service State_"+$a
+Rename-Item '.\Health Service State\' -newname $newf
+Get-Service Healthservice | Start-Service
