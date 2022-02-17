@@ -1,0 +1,161 @@
+param ([String] $MPElement, [String] $TargetID)
+$products = Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\* | Select-Object DisplayName, DisplayVersion, InstallDate, PSChildName | Where-Object {$_.DisplayName -like '*Operations Manager*' -or $_.DisplayName -eq 'Microsoft Monitoring Agent'}			
+$InstallDate = "20200206"
+          # Create a new discovery data packet
+          $oAPI = new-object -comObject "MOM.ScriptAPI"
+          $oDisc = $oAPI.CreateDiscoveryData(0, "$MPElement", "$TargetID")
+          $oDisc.IsSnapshot = $True
+          foreach($OMproduct in $products)
+          {
+              if(-not $OMproduct.PSChildName.startswith("{"))
+            {
+              continue;
+            }
+            $productComponentID = $OMproduct.PSChildName
+            $installer = new-object -comobject "WindowsInstaller.Installer"           
+            $productList = @($installer.GetType().InvokeMember("ProductsEx", "GetProperty", $null, $installer,('', '', 4)))  
+            $patchListString = ""
+            #$InstallDate = ""
+            $KBNumber = ""
+            foreach($product in $productList)
+            {
+               $ProductCode=$product.GetType().InvokeMember("ProductCode", "GetProperty", $null, $product, 1)
+               if($ProductCode -eq $productComponentID)
+               {
+                 $patchList=$installer.GetType().InvokeMember("PatchesEx", "GetProperty", $null, $installer,($ProductCode, "", 7, 1))
+                 foreach($patch in $patchList)
+                 {    
+                  $patchListString = $patch.GetType().InvokeMember("PatchProperty", [System.Reflection.BindingFlags]::GetProperty, $Null, $patch, "DisplayName")
+                  $InstallDate = $patch.GetType().InvokeMember("PatchProperty", [System.Reflection.BindingFlags]::GetProperty, $Null, $patch, "InstallDate")
+                  $PackageName = $patch.GetType().InvokeMember("SourceListInfo", [System.Reflection.BindingFlags]::GetProperty, $Null, $patch, "PackageName")								  
+                  $PackageName = $PackageName.Split("-")
+                  $KBNumber = $PackageName[0]
+                 }
+               }
+            }
+            if($patchListString -ne $null -and $patchListString -ne "")
+            {
+              $patchListString = $patchListString.Substring($patchListString.IndexOf("Manager") + 8)
+            }
+            if($InstallDate -ne $null -and $InstallDate -ne "")
+            {
+              $InstallDate = [datetime]::ParseExact($InstallDate,$InstallDate,$null).toshortdatestring()
+            }else{
+              $InstallDate = [datetime]::ParseExact($OMproduct.InstallDate,$InstallDate,$null).toshortdatestring()
+            }
+            
+            switch -wildcard ($OMproduct.DisplayName) 
+            {
+              "*Agent"
+              {
+                $ComponentName = "Agent"
+                $oInst1 = $oDisc.CreateClassInstance("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.Agent']$");
+                break;
+              }
+              
+              "*Reporting*"
+              {
+                $ComponentName = "Reporting"
+                $oInst1 = $oDisc.CreateClassInstance("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.Reporting']$");
+                break;
+              }
+              
+              "*Audit Collection Server*"
+              {
+                $ComponentName = "ACS"
+                $oInst1 = $oDisc.CreateClassInstance("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.ACS']$");
+                break;
+              } 
+              
+              "*Server"
+              {
+                $ComponentName = "Server"
+                $oInst1 = $oDisc.CreateClassInstance("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.OM']$");
+                break;
+              } 
+              
+              "*Web Console"
+              {
+                $ComponentName = "WebConsole"
+                $oInst1 = $oDisc.CreateClassInstance("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.WebConsole']$");
+                break;
+              } 
+              
+              "*Console"
+              {
+                $ComponentName = "Console"
+                $oInst1 = $oDisc.CreateClassInstance("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.Console']$");
+                break;
+              } 
+              
+              "*Gateway"
+              {
+                $ComponentName = "Gateway"                
+                $oInst1 = $oDisc.CreateClassInstance("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.Gateway']$");
+              } 
+            }
+            
+            If(Test-Path -Path "HKLM:\SOFTWARE\Microsoft\System Center Operations Manager\12\Setup\$ComponentName")
+            {
+              $ProductVersionRegistryKey = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\System Center Operations Manager\12\Setup\$ComponentName" | Select-Object "RTM_UR Version"
+              If($ProductVersionRegistryKey.'RTM_UR Version')
+              {
+                $OMProductVersion = $ProductVersionRegistryKey.'RTM_UR Version';
+              }
+              Else
+              {
+                $OMProductVersion = $OMproduct.DisplayVersion;
+              }
+            }
+            Else
+            {
+              $OMProductVersion = $OMproduct.DisplayVersion;
+            }
+            
+            $oInst1.AddProperty("$MPElement[Name='Windows!Microsoft.Windows.Computer']/PrincipalName$", "$Target/Host/Property[Type='Windows!Microsoft.Windows.Computer']/NetworkName$")
+            $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts']/ProductDisplayName$", $OMproduct.DisplayName)
+            $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts']/Domain$", "$Target/Host/Property[Type='Windows!Microsoft.Windows.Computer']/DomainDnsName$")
+            $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts']/ComputerName$", "$Target/Host/Property[Type='Windows!Microsoft.Windows.Computer']/NetworkName$")
+            $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts']/PatchInstalled$", $patchListString)
+            $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts']/InstallDate$", $InstallDate)
+            $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts']/Version$", $OMProductVersion)
+            $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts']/KBNumber$", $KBNumber)
+            IF( ($OMproduct.DisplayName -like '*Agent') -or ($OMproduct.DisplayName -like '*Manager Server') -or ($OMproduct.DisplayName -like '*Gateway') )
+            {
+              $LogOnTypeRegPath = "HKLM:\SOFTWARE\Policies\Microsoft\System Center\Health Service"
+              $LogOnTypeRegKey = "Worker Process Logon Type"
+
+              IF(!(Test-Path $LogOnTypeRegPath))
+              {
+                IF([int]($OMproduct.DisplayVersion.Split('.'))[0] -ge 10)
+                {
+                    $LogOnType = "Service"
+                }
+                ELSE
+                {
+                    $LogOnType = "Interactive"
+                }
+              }
+              ELSE
+              {
+                $LogOnTypeNumber = (Get-ItemProperty -Path $LogOnTypeRegPath -Name $LogOnTypeRegKey).$LogOnTypeRegKey
+                Switch($LogOnTypeNumber) 
+                {
+                    "2" {$LogOnType = "Interactive"; break;} 
+                    "8" {$LogOnType = "NetworkCleartext"; break;}
+                    "5" {$LogOnType = 'Service'; break;}
+                    "4" {$LogOnType = 'Batch'; break;}
+                    default {$LogOnType = 'Invalid';}
+                }
+              }
+              switch -wildcard ($OMproduct.DisplayName) 
+              {
+                "*Agent" { $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.Agent']/AccountLogOnType$", $LogOnType); break }
+                "*Manager Server" { $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.OM']/AccountLogOnType$", $LogOnType); break }
+                "*Gateway" { $oInst1.AddProperty("$MPElement[Name='Microsoft.SystemCenter.Installed.OMProducts.Gateway']/AccountLogOnType$", $LogOnType); break }
+              }
+            }
+            $oDisc.AddInstance($oInst1)
+          }
+          $oDisc
+          $oAPI.return($oDisc)
