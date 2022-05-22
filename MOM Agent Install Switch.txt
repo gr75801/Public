@@ -1,0 +1,24 @@
+For SCOM Agent:
+==================
+
+MOMAgent.msi /qb NOAPM=1 USE_SETTINGS_FROM_AD=0 MANAGEMENT_GROUP=DTOSCOM MANAGEMENT_SERVER_DNS=DSHVPSCMMGT04.bcbad.state.sc.us ACTIONS_USE_COMPUTER_ACCOUNT=0 USE_MANUALLY_SPECIFIED_SETTINGS=1 AcceptEndUserLicenseAgreement=1
+
+
+"\\DSHVPSCMMGT04.bcbad.state.sc.us\c$\Program Files\Microsoft System Center 2012 R2\Operations Manager\Server\AgentManagement\amd64\MOMAgent.msi" /qb NOAPM=1 USE_SETTINGS_FROM_AD=0 MANAGEMENT_GROUP=DTOSCOM MANAGEMENT_SERVER_DNS=DSHVPSCMMGT04.bcbad.state.sc.us ACTIONS_USE_COMPUTER_ACCOUNT=0 USE_MANUALLY_SPECIFIED_SETTINGS=1 AcceptEndUserLicenseAgreement=1 /l*v C:\Install\SCOM_agent_Log.txt
+
+
+msiexec.exe /i C:\Install\SCOM2016Agent\agent\AMD64\MOMAgent.msi /qb NOAPM=1 USE_SETTINGS_FROM_AD=0 MANAGEMENT_GROUP=DTOSCOM MANAGEMENT_SERVER_DNS=DSHVPSCMMGT04.bcbad.state.sc.us ACTIONS_USE_COMPUTER_ACCOUNT=0 USE_MANUALLY_SPECIFIED_SETTINGS=1 AcceptEndUserLicenseAgreement=1 /l*v C:\Install\SCOM_agent_Log.txt
+
+
+For Update Rollup's
+=======================
+msiexec.exe /P C:\Install\SCOM2016Agent\KB3183990-amd64-Agent.msp" NOAPM=1 /l*v C:\Install\SCOM_agent_Log.txt
+
+
+To Uninstall SCOM 2016 Agent with the UR at the same time:
+===========================================================
+msiexec.exe /x{742D699D-56EB-49CC-A04A-317DE01F31CD} /qb
+
+
+
+
