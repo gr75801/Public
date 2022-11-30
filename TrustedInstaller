@@ -1,0 +1,10 @@
+$a = New-ScheduledTaskAction -Execute notepad.exe
+Register-ScheduledTask -TaskName ‘TestTask’ -Action $a
+
+$svc = New-Object -ComObject ‘Schedule.Service’
+$svc.Connect()
+
+$user = ‘NT SERVICE\TrustedInstaller’
+$folder = $svc.GetFolder(’’)
+$task = $folder.GetTask(‘TestTask’)
+$task.RunEx($null, 0, 0, $user)
