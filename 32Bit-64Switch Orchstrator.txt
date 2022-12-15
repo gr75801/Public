@@ -1,0 +1,43 @@
+Set-Alias Start-PowerShell64 "$env:windir\sysnative\WindowsPowerShell\v1.0\powershell.exe" 
+
+Start-PowerShell64{
+
+Import-Module -Name RemoteDesktop
+
+$Module = Get-RDSessionHost -CollectionName "Quicksessioncollection" -ConnectionBroker RDSESSIONHOST.Systemcenterinfra.net
+
+$result = $Module | Out-String
+
+$result > "C:\Temp\RDG\Output.txt"
+
+}
+
+
+
+====================================
+# Create a scriptblock command 
+$Command = {
+
+
+    # Initialize
+    $ErrorActionPreference = "Stop"
+    $resultArray = @()
+
+
+    # Build an array to return the data to the initial powershell session
+    $resultArray += $(hostname)
+    $resultArray += Get-Variable | ConvertTo-Json
+    $resultArray
+}
+
+
+$Result = . $env:windir\sysnative\WindowsPowerShell\v1.0\powershell.exe  -noninteractive -noprofile -command $Command
+#$Result = Invoke-Command $Command
+# Split the result array so the runbook can pick them up.
+if ($result.count -gt 0) {
+    $Hostname   = $Result[0]
+    $Variables  = $Result[1]
+} else {
+    $Hostname  = "No host found"
+    $Variables = "None found"
+}
